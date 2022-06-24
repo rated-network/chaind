@@ -484,9 +484,6 @@ func (s *Service) fetchBlock(ctx context.Context, root phase0.Root) (*chaindb.Bl
 			return nil, nil
 		}
 
-		// We need to ensure the finalizer is not running ahead of the blocks service.  To do so, we compare the slot of the block
-		// we fetched with the highest known slot in the database.  If our block is higher than that already stored it means that
-		// we are waiting on the blocks service, so bow out.
 		latestBlocks, err := s.blocksProvider.LatestBlocks(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to obtain latest blocks")
