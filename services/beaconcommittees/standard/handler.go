@@ -72,8 +72,20 @@ func (s *Service) updateBeaconCommitteesForEpoch(ctx context.Context, epoch phas
 			Index:     beaconCommittee.Index,
 			Committee: beaconCommittee.Validators,
 		}
-		if err := s.beaconCommitteesSetter.SetBeaconCommittee(ctx, dbBeaconCommittee); err != nil {
+		tx, cancel, err := s.chainDB.BeginTx(ctx)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to begin transaction for committee")
+			return err
+		}
+		if err := s.beaconCommitteesSetter.SetBeaconCommittee(tx, dbBeaconCommittee); err != nil {
+			cancel()
 			return errors.Wrap(err, "failed to set beacon committee")
+		}
+
+		if err := s.chainDB.CommitTx(tx); err != nil {
+			log.Error().Err(err).Msg("Failed to commit transaction")
+			cancel()
+			return err
 		}
 	}
 	monitorEpochProcessed(epoch)
