@@ -120,6 +120,7 @@ log-file: /var/log/chaind.log
 chaindb:
   # url is the URL of the PostgreSQL database.
   url: postgres://chain:secret@localhost:5432
+  max-connections: 16
 # eth2client contains configuration for the Ethereum 2 client.
 eth2client:
   # log-level is the log level of the specific module.  If not present the base log
