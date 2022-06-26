@@ -165,8 +165,8 @@ func (s *Service) updateAfterRestart(ctx context.Context, startSlot int64) {
 	}
 
 	log.Info().Uint64("slot", uint64(md.LatestSlot)).Msg("Catching up from slot")
-	s.catchup(ctx, md)
-	log.Info().Msg("Caught up")
+	// s.catchup(ctx, md)
+	// log.Info().Msg("Caught up")
 
 	// Set up the handler for new chain head updates.
 	if err := s.eth2Client.(eth2client.EventsProvider).Events(ctx, []string{"head"}, func(event *api.Event) {
