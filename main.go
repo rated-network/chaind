@@ -165,6 +165,7 @@ func fetchConfig() error {
 	pflag.String("eth1client.address", "", "Address for Ethereum 1 node")
 	pflag.String("chaindb.url", "", "URL for database")
 	pflag.Uint("chaindb.max-connections", 16, "maximum number of concurrent database connections")
+	pflag.Bool("allow-unsync", false, "Allow chaind to index a syncing node. Unsafe, use with caution.")
 	pflag.Parse()
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		return errors.Wrap(err, "failed to bind pflags to viper")
@@ -300,25 +301,30 @@ func startServices(ctx context.Context, monitor metrics.Service) error {
 		time.Sleep(timeToGenesis)
 	}
 
-	// Wait for the node to sync.
-	for {
-		syncState, err := eth2Client.(eth2client.NodeSyncingProvider).NodeSyncing(ctx)
-		if err != nil {
-			log.Debug().Err(err).Msg("Failed to obtain node sync state; will re-test in 1 minute")
-			time.Sleep(time.Minute)
-			continue
+	// This may have unwanted consequences in some nodes. Proceed with caution.
+	shouldWaitToSync := !viper.GetBool("allow-unsync")
+
+	if shouldWaitToSync {
+		// Wait for the node to sync.
+		for {
+			syncState, err := eth2Client.(eth2client.NodeSyncingProvider).NodeSyncing(ctx)
+			if err != nil {
+				log.Debug().Err(err).Msg("Failed to obtain node sync state; will re-test in 1 minute")
+				time.Sleep(time.Minute)
+				continue
+			}
+			if syncState == nil {
+				log.Debug().Msg("No node sync state; will re-test in 1 minute")
+				time.Sleep(time.Minute)
+				continue
+			}
+			if syncState.IsSyncing {
+				log.Debug().Msg("Node syncing; will re-test in 1 minute")
+				time.Sleep(time.Minute)
+				continue
+			}
+			break
 		}
-		if syncState == nil {
-			log.Debug().Msg("No node sync state; will re-test in 1 minute")
-			time.Sleep(time.Minute)
-			continue
-		}
-		if syncState.IsSyncing {
-			log.Debug().Msg("Node syncing; will re-test in 1 minute")
-			time.Sleep(time.Minute)
-			continue
-		}
-		break
 	}
 
 	// Spec should be the first service that starts.  This adds configuration data to
