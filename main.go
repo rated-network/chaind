@@ -359,7 +359,9 @@ func startServices(ctx context.Context, monitor metrics.Service) error {
 	if summarizerSvc != nil {
 		finalityHandlers = append(finalityHandlers, summarizerSvc.(handlers.FinalityHandler))
 	}
-	if err := startFinalizer(ctx, eth2Client, chainDB, chainTime, blocks, monitor, finalityHandlers, activitySem); err != nil {
+
+	finalizerActivitySem := semaphore.NewWeighted(1)
+	if err := startFinalizer(ctx, eth2Client, chainDB, chainTime, blocks, monitor, finalityHandlers, finalizerActivitySem); err != nil {
 		return errors.Wrap(err, "failed to start finalizer service")
 	}
 
